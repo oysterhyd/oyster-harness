@@ -65,3 +65,4 @@ Phase 1 不直接追求完整对话体验，而是先定义最薄的模型边界
 - 创建首个 CLI 垂直切片、测试和 CI 配置。
 - 通过 Ruff、Pyright、pytest（2 tests）、包构建以及 CLI 烟雾测试。
 - 初始化 Git，将 `main` 推送至 GitHub 私有仓库 `oysterhyd/oyster-harness`。
+- 修复 `setup-uv` 浮动标签不可解析的问题；GitHub Actions 的质量任务全部通过。
