@@ -7,7 +7,8 @@
 
 - 阶段：Phase 0 — 工程初始化
 - 更新时间：2026-08-20
-- 状态：本地工程基线已验证，等待首次推送
+- 状态：已完成
+- 远端：`oysterhyd/oyster-harness`（private）
 
 ## 已确定的项目取舍
 
@@ -28,7 +29,7 @@
 - [x] 配置 pytest、Ruff 与严格模式 Pyright
 - [x] 添加 GitHub Actions CI
 - [x] 生成锁文件并通过本地质量检查
-- [ ] 初始化 Git 并推送 GitHub 私有仓库
+- [x] 初始化 Git 并推送 GitHub 私有仓库
 
 完成标准：
 
@@ -63,3 +64,4 @@ Phase 1 不直接追求完整对话体验，而是先定义最薄的模型边界
 - 确立 Oyster 命名与“由真实能力驱动结构”的项目原则。
 - 创建首个 CLI 垂直切片、测试和 CI 配置。
 - 通过 Ruff、Pyright、pytest（2 tests）、包构建以及 CLI 烟雾测试。
+- 初始化 Git，将 `main` 推送至 GitHub 私有仓库 `oysterhyd/oyster-harness`。
