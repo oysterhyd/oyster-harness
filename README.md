@@ -1,7 +1,7 @@
 # Oyster Harness
 
 Oyster Harness 是一个从底层机制出发构建的、带有个人取舍的轻量级 Coding Agent。
-项目当前处于工程初始化阶段；现阶段只建立可验证的 CLI 与质量基线，不提前填充尚未设计的 Agent 模块。
+项目当前已完成基础工程和模型交互层，默认通过 OpenCode Go 调用 Hy3。
 
 ## 为什么叫 Oyster
 
@@ -11,9 +11,33 @@ Oyster Harness 是一个从底层机制出发构建的、带有个人取舍的�
 ## 当前能力
 
 - 可安装的 Python 3.12 `src` layout 包
-- `oyster` 命令行入口
+- `oyster run` 单次流式调用
+- `oyster chat` 有状态多轮交互
+- OpenCode Go `hy3` Provider
 - pytest、Ruff、Pyright 与构建检查
 - GitHub Actions CI
+
+当前边界：CLI 可以正常对话，但还没有文件读取、搜索、Shell、代码修改等工具，
+因此此时是可用的模型客户端，还不是完整的 Coding Agent。
+
+## 使用 Hy3
+
+API 密钥不会写入项目配置或日志。可以通过环境变量传入：
+
+```powershell
+$env:OPENCODE_API_KEY = (Get-Content ..\api.txt -Raw).Trim()
+uv run oyster run "用一句话介绍你自己"
+uv run oyster chat
+```
+
+也可以直接指定密钥文件：
+
+```powershell
+uv run oyster run "用一句话介绍你自己" --api-key-file ..\api.txt
+uv run oyster chat --api-key-file ..\api.txt
+```
+
+在交互模式输入 `/exit` 或 `/quit` 退出。`api.txt` 和 `.env` 已加入 `.gitignore`，不得提交真实密钥。
 
 ## 本地开发
 
@@ -22,6 +46,7 @@ Oyster Harness 是一个从底层机制出发构建的、带有个人取舍的�
 ```powershell
 uv sync
 uv run oyster --help
+uv run oyster run --help
 uv run pytest
 uv run ruff check .
 uv run ruff format --check .

@@ -5,7 +5,7 @@
 
 ## 当前状态
 
-- 阶段：Phase 0 — 工程初始化
+- 阶段：Phase 1 — CLI + OpenCode Go Hy3
 - 更新时间：2026-08-20
 - 状态：已完成
 - 远端：`oysterhyd/oyster-harness`（private）
@@ -18,6 +18,9 @@
 3. 不按照最终架构图预先创建大量空模块。每个目录必须由已经进入实现的能力驱动产生。
 4. 第一阶段以“可安装、可执行、可测试、可发布构建”为完成标准；LLM 和 Agent Runtime 尚未实现。
 5. 暂不添加开源许可证。仓库为私有，未来公开前再明确选择许可证。
+6. 首个模型服务只接入 OpenCode Go，默认模型固定为 `hy3`。当前不做多 Provider 配置系统。
+7. 模型调用边界使用项目自有 Protocol 与 `httpx` 实现，不直接把 OpenAI SDK 类型渗透到会话层。
+8. API 密钥只从 `OPENCODE_API_KEY` 或显式 `--api-key-file` 读取，不持久化、不记录。
 
 ## 里程碑
 
@@ -44,16 +47,37 @@ uv build
 
 以上命令全部成功，且远端私有仓库可访问。
 
+### Phase 1：CLI + OpenCode Go Hy3
+
+- [x] 定义与厂商无关的 `ChatMessage` 和 `ChatProvider`
+- [x] 实现 OpenCode Go `hy3` 的 OpenAI-compatible SSE 流式调用
+- [x] 实现 `oyster run` 单次输入输出
+- [x] 实现 `oyster chat` 多轮输入输出和 `/exit` 退出
+- [x] 支持环境变量与显式密钥文件，不将密钥纳入 Git
+- [x] 为配置、会话、Provider 和 CLI 添加单元测试
+- [x] 完成真实 API 单次调用与两轮上下文测试
+
+真实调用验收：
+
+- 单次命令要求固定回复，Hy3 返回 `OYSTER_OK`
+- 交互会话第一轮写入代号 `PEARL42`，第二轮能准确回忆该代号
+- `/exit` 正常结束，退出码为 0
+
+当前限制：
+
+- 尚未实现 Tool Schema、Tool Registry 或 Agent Loop
+- 尚不能读取、搜索、修改项目文件或运行 Shell
+- 会话历史仅存在于当前进程，退出后不会持久化
+
 ## 下一阶段候选目标
 
-Phase 1 不直接追求完整对话体验，而是先定义最薄的模型边界：
+Phase 2 将从“模型客户端”进入最小 Agent Runtime：
 
-- 定义与厂商无关的模型请求、文本增量和最终响应模型
-- 只接入一个首选 Provider，避免过早实现多 Provider 抽象
-- 让 CLI 展示真实流式输出
-- 为网络失败、配置缺失和中断行为建立可测试语义
-
-进入 Phase 1 前，需要先确定首选模型服务与鉴权方式。
+- 定义结构化 Tool Call / Tool Result
+- 建立 Tool Registry 与顺序执行器
+- 首批只实现 `list_dir`、`read_file` 和 `grep`
+- 让 Hy3 能根据用户问题调用工具、观察结果并继续回答
+- 为循环次数、无效调用和工具失败定义停止语义
 
 ## 变更日志
 
@@ -66,3 +90,7 @@ Phase 1 不直接追求完整对话体验，而是先定义最薄的模型边界
 - 通过 Ruff、Pyright、pytest（2 tests）、包构建以及 CLI 烟雾测试。
 - 初始化 Git，将 `main` 推送至 GitHub 私有仓库 `oysterhyd/oyster-harness`。
 - 修复 `setup-uv` 浮动标签不可解析的问题；GitHub Actions 的质量任务全部通过。
+- 确认 OpenCode Go 密钥有效，模型列表包含 `hy3`。
+- 完成 Hy3 流式 Provider、单次 CLI 调用和有状态交互会话。
+- 本地 Ruff、Pyright、构建及 10 项测试全部通过。
+- 完成真实 Hy3 单次调用和两轮上下文验收，未记录或提交 API 密钥。
