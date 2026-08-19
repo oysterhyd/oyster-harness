@@ -1,0 +1,40 @@
+[build-system]
+requires = ["uv_build>=0.11.0,<0.12.0"]
+build-backend = "uv_build"
+
+[project]
+name = "oyster-harness"
+version = "0.1.0"
+description = "A small, opinionated coding agent built from first principles."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "rich>=14.1.0",
+    "typer>=0.16.0",
+]
+
+[project.scripts]
+oyster = "oyster_harness.cli:main"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.403",
+    "pytest>=8.4.1",
+    "ruff>=0.12.10",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+testpaths = ["tests"]
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "SIM", "UP"]
