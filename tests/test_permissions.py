@@ -30,3 +30,25 @@ def test_dangerous_commands_are_denied_even_in_auto_mode() -> None:
         permissions.decide(_call("shell", '{"command":"git reset --hard","shell":"bash"}'))
         is PermissionDecision.DENY
     )
+
+
+def test_auto_mode_allows_powershell_formatting_but_denies_disk_formatting() -> None:
+    permissions = PermissionManager(PermissionMode.READ_ONLY)
+    disk_query = _call(
+        "shell",
+        '{"command":"Get-PSDrive D | Format-Table -AutoSize","shell":"pwsh"}',
+    )
+
+    permissions.mode = PermissionMode.AUTO
+
+    assert permissions.decide(disk_query) is PermissionDecision.ALLOW
+    assert (
+        permissions.decide(_call("shell", '{"command":"format D: /Q","shell":"pwsh"}'))
+        is PermissionDecision.DENY
+    )
+    assert (
+        permissions.decide(
+            _call("shell", '{"command":"Format-Volume -DriveLetter D","shell":"pwsh"}')
+        )
+        is PermissionDecision.DENY
+    )

@@ -27,7 +27,9 @@ _DANGEROUS_COMMANDS = (
     re.compile(r"\brm\s+-[^\r\n]*r[^\r\n]*f\s+[/~]?(?:\s|$)", re.IGNORECASE),
     re.compile(r"\bgit\s+reset\s+--hard\b", re.IGNORECASE),
     re.compile(r"\bgit\s+push\b[^\r\n]*(?:--force|-f)\b", re.IGNORECASE),
-    re.compile(r"\b(?:shutdown|reboot|format)\b", re.IGNORECASE),
+    re.compile(r"\b(?:shutdown|reboot)\b", re.IGNORECASE),
+    re.compile(r"(?<![-\w])format(?:\.com)?(?=\s|$)", re.IGNORECASE),
+    re.compile(r"\bFormat-Volume\b", re.IGNORECASE),
     re.compile(r"\bRemove-Item\b[^\r\n]*\b-Recurse\b", re.IGNORECASE),
 )
 _READ_ONLY_COMMANDS = (

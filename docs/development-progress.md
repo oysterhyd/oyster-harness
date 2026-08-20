@@ -191,3 +191,7 @@ Phase 1 完成时的限制：
   请求流式 usage，并优先用服务端 `prompt_tokens` 计算剩余百分比；模型切换同步更新窗口。
 - 通过 34 项自动化测试、Ruff、formatter、严格 Pyright 和包构建；真实 Hy3 流返回 24 个
   输入 token，按 256k 窗口显示 `100% context left`。
+- 修复 `auto` 权限下 PowerShell 磁盘查询被误拒绝：危险规则不再把只读的 `Format-Table`
+  当成磁盘格式化命令，同时继续拦截 `format` / `format.com` 与 `Format-Volume`。
+- 通过 35 项自动化测试、Ruff、formatter、严格 Pyright 和包构建；真实 Hy3 Agent 在
+  `auto` 模式下一次执行带 `Format-List` 的 D 盘查询成功，未再触发权限拒绝。
