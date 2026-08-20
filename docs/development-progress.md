@@ -197,3 +197,5 @@ Phase 1 完成时的限制：
   `auto` 模式下一次执行带 `Format-List` 的 D 盘查询成功，未再触发权限拒绝。
 - 修复 Linux CI 的平台类型收窄错误：shell 工具测试直接按 `os.name` 设置对应的 shell 与
   命令，并在 Windows 本地增加 `pyright --pythonplatform Linux` 验证路径。
+- CI 在进入 pytest 后暴露 Ubuntu runner 缺少 `rg`；工作流现显式安装 grep 工具所需的
+  ripgrep，README 同步记录该运行时依赖。

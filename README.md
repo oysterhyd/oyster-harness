@@ -69,7 +69,7 @@ uv run oyster run "分析这个项目的入口文件" --api-key-file ..\api.txt 
 
 ## 本地开发
 
-需要安装 [uv](https://docs.astral.sh/uv/)。
+需要安装 [uv](https://docs.astral.sh/uv/) 和 [ripgrep](https://github.com/BurntSushi/ripgrep)。
 
 ```powershell
 uv sync
