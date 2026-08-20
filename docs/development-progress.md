@@ -195,3 +195,5 @@ Phase 1 完成时的限制：
   当成磁盘格式化命令，同时继续拦截 `format` / `format.com` 与 `Format-Volume`。
 - 通过 35 项自动化测试、Ruff、formatter、严格 Pyright 和包构建；真实 Hy3 Agent 在
   `auto` 模式下一次执行带 `Format-List` 的 D 盘查询成功，未再触发权限拒绝。
+- 修复 Linux CI 的平台类型收窄错误：shell 工具测试直接按 `os.name` 设置对应的 shell 与
+  命令，并在 Windows 本地增加 `pyright --pythonplatform Linux` 验证路径。

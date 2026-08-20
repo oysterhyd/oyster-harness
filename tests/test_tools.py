@@ -45,8 +45,12 @@ def test_grep_finds_workspace_text(tmp_path: Path) -> None:
 
 
 def test_shell_runs_in_requested_runtime(tmp_path: Path) -> None:
-    shell = "pwsh" if os.name == "nt" else "bash"
-    command = "Write-Output oyster" if shell == "pwsh" else "printf oyster"
+    if os.name == "nt":
+        shell = "pwsh"
+        command = "Write-Output oyster"
+    else:
+        shell = "bash"
+        command = "printf oyster"
 
     result = _execute(
         ToolRegistry(tmp_path),

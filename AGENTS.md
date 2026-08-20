@@ -25,7 +25,7 @@ Keep terminal rendering stateful: dynamic input, tool progress, and the status l
 
 ## Testing Guidelines
 
-Use pytest. Name files `test_<area>.py` and tests `test_<behavior>()`. Every behavior change needs a test; bug fixes should include a regression case. Unit tests must not call paid or live APIs—use `httpx.MockTransport`. Cover terminal output with prompt-toolkit's in-memory VT100 helpers where possible; manually verify significant TUI changes in a real PTY. Real Hy3 smoke tests are manual verification and must use a local credential source.
+Use pytest. Name files `test_<area>.py` and tests `test_<behavior>()`. Every behavior change needs a test; bug fixes should include a regression case. Unit tests must not call paid or live APIs—use `httpx.MockTransport`. Cover terminal output with prompt-toolkit's in-memory VT100 helpers where possible; manually verify significant TUI changes in a real PTY. When platform-dependent branches change on Windows, also run `uv run pyright --pythonplatform Linux` to match CI analysis. Real Hy3 smoke tests are manual verification and must use a local credential source.
 
 ## Commit & Pull Request Guidelines
 
