@@ -40,6 +40,7 @@ class ModelResponse:
     content: str
     tool_calls: tuple[ToolCall, ...]
     finish_reason: str | None
+    input_tokens: int | None = None
 
 
 TextCallback = Callable[[str], None]

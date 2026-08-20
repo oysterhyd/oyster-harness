@@ -16,7 +16,8 @@ Oyster Harness 是一个从底层机制出发构建的、带有个人取舍的�
 - `list_dir`、`read_file`、`grep`、`edit_file`、`write_file` 工具
 - 异步 `bash` / PowerShell 7 命令工具，含超时、退出码和输出裁剪
 - workspace 路径隔离，以及 `read-only` / `ask` / `auto` 三档权限
-- 基于 `o200k_base` 的 token 预算、旧轮次压缩、工具输出裁剪和结构化工作记忆
+- 按模型上下文窗口管理预算，优先使用服务端输入用量，并以 `o200k_base` 作为估算回退
+- 旧轮次压缩、工具输出裁剪和结构化工作记忆
 - OpenCode Go Chat Completions 模型及推理强度切换
 - 输入 `/` 即时弹出的命令面板，以及模型/推理/权限的二级配置选择
 - `OYSTER HARNESS` 启动标志、瞬态输入框、对话面板和 Markdown 渲染
@@ -24,10 +25,10 @@ Oyster Harness 是一个从底层机制出发构建的、带有个人取舍的�
 - pytest、Ruff、Pyright 与构建检查
 - GitHub Actions CI
 
-当前边界：不同 OpenCode Go 模型没有统一公开 tokenizer，因此内部预算使用 `o200k_base`
-作一致近似；状态栏与 Codex、Claude Code 一样显示整个受管上下文窗口的剩余百分比，不暴露
-近似 token 数。编辑尚未支持 Unified Diff；会话退出后不会持久化；模型支持暂限 OpenCode Go
-的 OpenAI-compatible Chat Completions 协议。
+当前边界：不同 OpenCode Go 模型没有统一公开 tokenizer，因此服务端未返回 usage 时，内部预算
+使用 `o200k_base` 作一致近似；状态栏优先用服务端真实输入用量计算各模型上下文窗口的剩余
+百分比，不暴露 token 数。编辑尚未支持 Unified Diff；会话退出后不会持久化；模型支持暂限
+OpenCode Go 的 OpenAI-compatible Chat Completions 协议。
 
 ## 使用 Hy3
 

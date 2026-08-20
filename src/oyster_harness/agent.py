@@ -7,12 +7,11 @@ from typing import cast
 
 from oyster_harness.context import ContextManager
 from oyster_harness.llm.base import ChatMessage, ChatProvider, ToolCall
-from oyster_harness.llm.opencode import DEFAULT_MODEL
+from oyster_harness.llm.opencode import DEFAULT_MODEL, model_context_window
 from oyster_harness.permissions import PermissionDecision, PermissionManager, PermissionMode
 from oyster_harness.tools import ToolRegistry, ToolResult
 
 DEFAULT_MAX_ITERATIONS = 12
-DEFAULT_CONTEXT_TOKENS = 20_000
 
 AGENT_SYSTEM_PROMPT = """You are Oyster, the coding agent inside Oyster Harness.
 Oyster Harness is a lightweight, opinionated terminal coding agent that grows around its
@@ -46,7 +45,7 @@ class AgentSettings:
     reasoning_effort: ReasoningEffort = ReasoningEffort.MEDIUM
     permission_mode: PermissionMode = PermissionMode.ASK
     max_iterations: int = DEFAULT_MAX_ITERATIONS
-    context_tokens: int = DEFAULT_CONTEXT_TOKENS
+    context_tokens: int | None = None
 
 
 class AgentEventKind(StrEnum):
@@ -93,7 +92,8 @@ class AgentSession:
         self._provider = provider
         self._registry = registry or ToolRegistry(workspace)
         self._permissions = PermissionManager(self.settings.permission_mode)
-        self._context = ContextManager(self.settings.context_tokens)
+        self._context = ContextManager(self._configured_context_window())
+        self._last_input_tokens: int | None = None
         self._workspace = workspace.resolve()
         self._base_system_prompt = system_prompt.rstrip()
         self._system_message = self._make_system_message()
@@ -105,10 +105,20 @@ class AgentSession:
 
     @property
     def context_tokens(self) -> int:
-        return self._context.estimate(self.messages)
+        return (
+            self._last_input_tokens
+            if self._last_input_tokens is not None
+            else self._context.estimate(self.messages)
+        )
+
+    @property
+    def context_window_tokens(self) -> int:
+        return self._context.max_tokens
 
     @property
     def context_left_percent(self) -> int:
+        if self._last_input_tokens is not None:
+            return self._context.remaining_percentage_for_tokens(self._last_input_tokens)
         return self._context.remaining_percentage(self.messages)
 
     def set_model(self, model: str) -> None:
@@ -116,20 +126,29 @@ class AgentSession:
         if not normalized:
             raise ValueError("Model cannot be empty.")
         self.settings.model = normalized
+        if self.settings.context_tokens is None:
+            memory = self._context.memory
+            self._context = ContextManager(model_context_window(normalized))
+            self._context.memory = memory
+            self._messages = list(self._context.build(self.messages))
+        self._last_input_tokens = None
         self._refresh_system_message()
 
     def set_reasoning_effort(self, effort: ReasoningEffort) -> None:
         self.settings.reasoning_effort = effort
+        self._last_input_tokens = None
         self._refresh_system_message()
 
     def set_permission_mode(self, mode: PermissionMode) -> None:
         self.settings.permission_mode = mode
         self._permissions.mode = mode
+        self._last_input_tokens = None
         self._refresh_system_message()
 
     def clear(self) -> None:
         """Clear conversation history and working memory without changing runtime settings."""
-        self._context = ContextManager(self.settings.context_tokens)
+        self._context = ContextManager(self._configured_context_window())
+        self._last_input_tokens = None
         self._system_message = self._make_system_message()
         self._messages = [self._system_message]
 
@@ -158,6 +177,7 @@ class AgentSession:
                     AgentEvent(AgentEventKind.MODEL_TEXT, text),
                 ),
             )
+            self._last_input_tokens = response.input_tokens
             self._messages.append(
                 ChatMessage(
                     role="assistant",
@@ -253,6 +273,11 @@ class AgentSession:
             f"- Workspace root: {self._workspace}\n"
         )
         return ChatMessage(role="system", content=self._base_system_prompt + runtime_identity)
+
+    def _configured_context_window(self) -> int:
+        if self.settings.context_tokens is not None:
+            return self.settings.context_tokens
+        return model_context_window(self.settings.model)
 
 
 def _emit(handler: EventHandler | None, event: AgentEvent) -> None:

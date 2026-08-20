@@ -21,7 +21,7 @@ Do not pre-create speculative subsystems or empty package trees. Add a module wh
 
 Target Python 3.12, use four-space indentation, and keep lines within 100 characters. Ruff handles formatting and linting; Pyright runs in strict mode. Use `snake_case` for modules, functions, and variables, `PascalCase` for classes, and `UPPER_SNAKE_CASE` for constants. Keep provider-specific types inside `llm/` and expose small typed boundaries. Prefer focused functions, explicit async streaming, and the smallest implementation that satisfies a verified behavior.
 
-Keep terminal rendering stateful: dynamic input, tool progress, and the status line must update in place without duplicating scrollback. Preserve Windows ConPTY behavior and the explicit prompt-toolkit application session used when the inherited `TERM` is `dumb`. Context may use token estimates internally for budgeting, but user-facing status follows Codex and Claude Code by displaying the remaining context percentage.
+Keep terminal rendering stateful: dynamic input, tool progress, and the status line must update in place without duplicating scrollback. Preserve Windows ConPTY behavior and the explicit prompt-toolkit application session used when the inherited `TERM` is `dumb`. Context uses each model's advertised window and prefers provider-reported input usage; use the `o200k_base` estimate only as a fallback. User-facing status follows Codex and Claude Code by displaying the remaining context percentage.
 
 ## Testing Guidelines
 
@@ -30,6 +30,8 @@ Use pytest. Name files `test_<area>.py` and tests `test_<behavior>()`. Every beh
 ## Commit & Pull Request Guidelines
 
 Follow the existing Conventional Commit style: `feat:`, `chore:`, `docs:`, and `ci:` with imperative summaries. Keep changes narrowly scoped. PRs should explain behavior, list verification commands, link relevant issues, and include terminal output or screenshots for CLI changes.
+
+After completing and verifying project changes, commit and push the current branch automatically unless the user explicitly asks to leave the work uncommitted. Fetch before pushing, stop and report any divergence or conflict, and do not open a pull request unless requested.
 
 ## Security & Agent Boundaries
 

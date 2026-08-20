@@ -10,15 +10,19 @@ from oyster_harness.llm.opencode import DEFAULT_MODEL, OpenCodeAPIError, OpenCod
 def test_provider_parses_openai_compatible_stream() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.headers["Authorization"] == "Bearer test-key"
-        assert f'"model":"{DEFAULT_MODEL}"' in request.content.decode()
+        body = request.content.decode()
+        assert f'"model":"{DEFAULT_MODEL}"' in body
+        assert '"stream_options":{"include_usage":true}' in body
         content = (
             'data: {"choices":[{"delta":{"content":"hello"}}]}\n\n'
             'data: {"choices":[{"delta":{"content":" oyster"}}]}\n\n'
+            'data: {"choices":[],"usage":{"prompt_tokens":37,'
+            '"completion_tokens":2,"total_tokens":39}}\n\n'
             "data: [DONE]\n\n"
         )
         return httpx.Response(200, text=content, headers={"content-type": "text/event-stream"})
 
-    async def request() -> tuple[str, list[str]]:
+    async def request() -> tuple[str, int | None, list[str]]:
         transport = httpx.MockTransport(handler)
         async with httpx.AsyncClient(transport=transport) as client:
             provider = OpenCodeProvider("test-key", client=client)
@@ -29,9 +33,9 @@ def test_provider_parses_openai_compatible_stream() -> None:
                 reasoning_effort="medium",
                 on_text=streamed.append,
             )
-            return response.content, streamed
+            return response.content, response.input_tokens, streamed
 
-    assert asyncio.run(request()) == ("hello oyster", ["hello", " oyster"])
+    assert asyncio.run(request()) == ("hello oyster", 37, ["hello", " oyster"])
 
 
 def test_provider_assembles_streamed_tool_calls() -> None:

@@ -149,3 +149,28 @@ def test_system_prompt_tracks_runtime_identity_and_model_switches(tmp_path: Path
     assert "Active model ID: kimi-k3" in system_prompt
     assert "Reasoning effort: high" in system_prompt
     assert "Permission mode: auto" in system_prompt
+
+
+def test_hy3_uses_its_model_context_window_and_server_input_usage(tmp_path: Path) -> None:
+    provider = ScriptedProvider([ModelResponse("Done.", (), "stop", input_tokens=10_200)])
+    session = AgentSession(provider, tmp_path)
+
+    assert session.context_window_tokens == 256_000
+
+    asyncio.run(session.run("Inspect this project."))
+
+    assert session.context_tokens == 10_200
+    assert session.context_left_percent == 96
+
+
+def test_model_switch_updates_automatic_context_window_without_losing_history(
+    tmp_path: Path,
+) -> None:
+    provider = ScriptedProvider([ModelResponse("Ready.", (), "stop")])
+    session = AgentSession(provider, tmp_path)
+    asyncio.run(session.run("Remember PEARL42."))
+
+    session.set_model("kimi-k3")
+
+    assert session.context_window_tokens == 1_048_576
+    assert any("PEARL42" in message.content for message in session.messages)

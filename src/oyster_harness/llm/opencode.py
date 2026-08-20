@@ -15,20 +15,30 @@ from oyster_harness.llm.base import (
 
 DEFAULT_CHAT_ENDPOINT = "https://opencode.ai/zen/go/v1/chat/completions"
 DEFAULT_MODEL = "hy3"
-CHAT_COMPLETION_MODELS = (
-    "hy3",
-    "hy3-preview",
-    "grok-4.5",
-    "glm-5.2",
-    "glm-5.1",
-    "kimi-k3",
-    "kimi-k2.7-code",
-    "kimi-k2.6",
-    "deepseek-v4-pro",
-    "deepseek-v4-flash",
-    "mimo-v2.5-pro",
-    "mimo-v2.5",
-)
+FALLBACK_CONTEXT_WINDOW = 200_000
+# Snapshot of the OpenCode Go catalog from models.dev, verified 2026-08-20.
+# hy3-preview is still returned by the Go models endpoint but no longer has a
+# separate catalog entry, so it follows the released hy3 window.
+MODEL_CONTEXT_WINDOWS = {
+    "hy3": 256_000,
+    "hy3-preview": 256_000,
+    "grok-4.5": 500_000,
+    "glm-5.2": 1_000_000,
+    "glm-5.1": 202_752,
+    "kimi-k3": 1_048_576,
+    "kimi-k2.7-code": 262_144,
+    "kimi-k2.6": 262_144,
+    "deepseek-v4-pro": 1_000_000,
+    "deepseek-v4-flash": 1_000_000,
+    "mimo-v2.5-pro": 1_048_576,
+    "mimo-v2.5": 1_000_000,
+}
+CHAT_COMPLETION_MODELS = tuple(MODEL_CONTEXT_WINDOWS)
+
+
+def model_context_window(model: str) -> int:
+    """Return the advertised model context window or a conservative fallback."""
+    return MODEL_CONTEXT_WINDOWS.get(model, FALLBACK_CONTEXT_WINDOW)
 
 
 class OpenCodeAPIError(RuntimeError):
@@ -63,6 +73,7 @@ class OpenCodeProvider:
             "messages": [_serialize_message(message) for message in messages],
             "reasoning_effort": reasoning_effort,
             "stream": True,
+            "stream_options": {"include_usage": True},
         }
         if tools:
             request["tools"] = [_serialize_tool(tool) for tool in tools]
@@ -96,6 +107,7 @@ class OpenCodeProvider:
         text_chunks: list[str] = []
         tool_calls: dict[int, _ToolCallBuilder] = {}
         finish_reason: str | None = None
+        input_tokens: int | None = None
 
         async with client.stream(
             "POST",
@@ -118,6 +130,8 @@ class OpenCodeProvider:
                     break
 
                 event = _extract_event(data)
+                if event.input_tokens is not None:
+                    input_tokens = event.input_tokens
                 if event.text:
                     text_chunks.append(event.text)
                     if on_text is not None:
@@ -130,7 +144,7 @@ class OpenCodeProvider:
         completed_calls = tuple(
             builder.build(index) for index, builder in sorted(tool_calls.items())
         )
-        return ModelResponse("".join(text_chunks), completed_calls, finish_reason)
+        return ModelResponse("".join(text_chunks), completed_calls, finish_reason, input_tokens)
 
 
 @dataclass(frozen=True, slots=True)
@@ -146,6 +160,7 @@ class _StreamEvent:
     text: str = ""
     tool_calls: tuple[_ToolCallDelta, ...] = ()
     finish_reason: str | None = None
+    input_tokens: int | None = None
 
 
 @dataclass(slots=True)
@@ -178,9 +193,10 @@ def _extract_event(data: str) -> _StreamEvent:
     if payload is None:
         return _StreamEvent()
 
+    input_tokens = _extract_input_tokens(payload)
     choices = payload.get("choices")
     if not isinstance(choices, list) or not choices:
-        return _StreamEvent()
+        return _StreamEvent(input_tokens=input_tokens)
 
     choice = _as_object(cast(object, choices[0]))
     delta = _as_object(choice.get("delta")) if choice is not None else None
@@ -190,7 +206,14 @@ def _extract_event(data: str) -> _StreamEvent:
         text=content if isinstance(content, str) else "",
         tool_calls=_extract_tool_deltas(delta),
         finish_reason=finish_reason if isinstance(finish_reason, str) else None,
+        input_tokens=input_tokens,
     )
+
+
+def _extract_input_tokens(payload: dict[str, object]) -> int | None:
+    usage = _as_object(payload.get("usage"))
+    prompt_tokens = usage.get("prompt_tokens") if usage is not None else None
+    return prompt_tokens if isinstance(prompt_tokens, int) and prompt_tokens >= 0 else None
 
 
 def _extract_tool_deltas(delta: dict[str, object] | None) -> tuple[_ToolCallDelta, ...]:

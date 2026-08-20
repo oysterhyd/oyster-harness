@@ -39,6 +39,9 @@
     工具状态按 call ID 原地更新，完成回复后不把旧状态栏写入滚动历史。
 17. 系统提示由固定行为说明与每轮刷新的运行时身份组成。模型 ID、推理强度、权限模式和
     workspace 以运行时值为准，避免 Agent 猜测自己的身份。
+18. context 百分比使用当前模型的广告窗口作为分母，流式响应提供 usage 时优先采用服务端
+    `prompt_tokens`；只有调用前或 usage 缺失时才退回 `o200k_base` 估算。切换模型会同步窗口，
+    但不会清空会话历史或工作记忆。
 
 ## 里程碑
 
@@ -96,6 +99,7 @@ Phase 1 完成时的限制：
 - [x] workspace 路径隔离，阻止相对路径和符号链接逃逸
 - [x] `read-only` / `ask` / `auto` 权限模式和独立于 Prompt 的危险命令拒绝
 - [x] `o200k_base` token 预算、工具输出裁剪、按用户轮次压缩和结构化工作记忆
+- [x] 逐模型上下文窗口、服务端输入 usage 统计与本地估算回退
 - [x] 模型、推理强度和权限的 CLI 参数与交互命令切换
 - [x] `OYSTER HARNESS` 品牌启动区、用户/Agent 对话框、原地工具活动和唯一动态状态栏
 - [x] 输入 `/` 实时显示命令列表，回车进入模型/推理/权限二级配置列表
@@ -119,13 +123,16 @@ Phase 1 完成时的限制：
   回复完成后旧状态栏不进入滚动历史
 - context 使用 Codex 风格的 `N% context left`，并与 Claude Code 的
   `remaining_percentage` 语义一致，不在状态栏显示 tokenizer 估算值
+- Hy3 使用 256k 上下文窗口；服务端报告 10,200 输入 token 时显示 `96% context left`，
+  切换到 Kimi K3 后窗口更新为 1,048,576 且会话历史保留
 
 当前限制：
 
 - `edit_file` 只支持单次精确替换，尚未实现 Unified Diff 和 Patch Validator
 - Shell 在进程结束后一次性返回 stdout/stderr，尚未向模型流式回注过程输出
-- 内部预算使用统一的 `o200k_base` 近似，不保证与每个 Go 模型服务端的精确计费一致；
-  状态栏百分比描述 Oyster 管理的上下文窗口，尚没有服务端 usage 对账和 LLM 语义摘要
+- OpenCode Go 的 `/models` 端点不返回上下文上限，因此逐模型窗口来自版本化元数据快照，
+  可能随上游模型调整而需要更新；usage 缺失时的 `o200k_base` 回退仍是近似值
+- 尚没有 LLM 语义摘要
 - 完整历史仅在当前进程中保留，退出后没有 history / resume
 - Go 的 Responses 与 Anthropic Messages 协议模型尚未接入
 - 命令策略是保守规则集，不等同于容器或 OS 级强隔离
@@ -180,3 +187,7 @@ Phase 1 完成时的限制：
   ConPTY 动态渲染。
 - 通过 32 项自动化测试、Ruff、formatter 和严格 Pyright；完成真实 Hy3 身份、工具原地
   更新、唯一 statusline 与 `/` 配置选择验收。
+- 修复 context 首轮错误骤降：移除统一的 20k 分母，为 OpenCode Go 模型记录各自上下文窗口，
+  请求流式 usage，并优先用服务端 `prompt_tokens` 计算剩余百分比；模型切换同步更新窗口。
+- 通过 34 项自动化测试、Ruff、formatter、严格 Pyright 和包构建；真实 Hy3 流返回 24 个
+  输入 token，按 256k 窗口显示 `100% context left`。

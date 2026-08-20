@@ -109,7 +109,11 @@ class ContextManager:
 
     def remaining_percentage(self, messages: tuple[ChatMessage, ...]) -> int:
         """Return the managed context window remaining, rounded to a whole percent."""
-        used = min(self.estimate(messages), self.max_tokens)
+        return self.remaining_percentage_for_tokens(self.estimate(messages))
+
+    def remaining_percentage_for_tokens(self, used_tokens: int) -> int:
+        """Return the remaining percentage for provider-reported input usage."""
+        used = min(max(used_tokens, 0), self.max_tokens)
         remaining = self.max_tokens - used
         return (remaining * 100 + self.max_tokens // 2) // self.max_tokens
 
